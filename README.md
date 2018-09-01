@@ -57,6 +57,8 @@ $ ansible-playbook --check monitoring.yml \
       -i ~/vagrant/ansible-playbooks/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory monitoring.yml
 ```
 
+Provided the Vagrant node private IP remains the same, Grafana should be available at `192.168.33.10:3000` and Prometheus at `192.168.33.10:9090`.
+
 ## License 
 
 See `LICENSE` file
