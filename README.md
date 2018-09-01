@@ -59,7 +59,7 @@ $ ansible-playbook --check monitoring.yml \
 
 Provided the Vagrant node private IP remains the same, Grafana should be available at `192.168.33.10:3000` and Prometheus at `192.168.33.10:9090`.
 
-## License 
+## License
 
 See `LICENSE` file
 
