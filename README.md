@@ -2,7 +2,7 @@
 
 Monorepo for KukriLabs Ansible Playbooks and Roles. Where possible (and appropriate) Docker is used in the installation of applications 
 
-## Roles
+## Roles
 
 Currently roles are only defined in the `roles/` directory and not available on Ansible Galaxy. Should there be a suitable demand for this functionality this is something we are open to providing.
 
