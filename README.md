@@ -1,3 +1,22 @@
+# KukriLabs Ansible Playbooks
+
+Monorepo for KukriLabs Ansible Playbooks and Roles. Where possible (and appropriate) Docker is used in the installation of applications 
+
+## Roles
+
+Currently roles are only defined in the `roles/` directory and not available on Ansible Galaxy. Should there be a suitable demand for this functionality this is something we are open to providing.
+
+### `prometheus-docker`
+
+[Prometheus](https://prometheus.io/) monitoring system backed by [TimescaleDB](https://www.timescale.com/) running in Docker containers. 
+
+### `grafana-docker`
+
+[Grafana](https://grafana.com/) graphing system running in a docker container. Can be connected to docker network of `prometheus-docker` role (and others) to add Prometheus as a data source
+
+## Playbooks
+
+Playbooks provided are generally geared towards specific internal use cases but may be useful as a starting point or as reference examples.
 
 ## Setup
 
@@ -21,8 +40,27 @@ $ ansible-playbook -i /path/to/inventory {{ playbook_name }}.yml
 
 ### Vagrant
 
+If [Vagrant](https://www.vagrantup.com/) is installed provided is a `Vagrantfile` which can be used to validate roles and playbooks using a similar workflow (using the `monitoring.yml` playbook) to the one below:
+
 ```
-$ ansible-playbook --check analytics.yml \
+$ # Setup Pipenv environment
+
+$ # Start vagrant
+$ vagrant up
+
+$ # Install ansible galaxy requirements
+$ ansible-galaxy install -r requirements/monitoring.yml
+
+$ # Run ansible playbook
+$ ansible-playbook --check monitoring.yml \
     && ansible-playbook \
-      -i ~/vagrant/ansible_playground/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory analytics.yml
+      -i ~/vagrant/ansible-playbooks/.vagrant/provisioners/ansible/inventory/vagrant_ansible_inventory monitoring.yml
 ```
+
+## License 
+
+See `LICENSE` file
+
+## Copyright
+
+Copyright (c) 2018 Ewan Jones of Kukri Labs
