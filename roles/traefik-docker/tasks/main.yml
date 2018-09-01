@@ -1,0 +1,8 @@
+---
+- name: Create and setup traefik
+  include_tasks: create.yml
+  when: traefik_state == "present"
+
+- name: Destroy all traefik resources
+  include_tasks: teardown.yml
+  when: traefik_state == "absent"

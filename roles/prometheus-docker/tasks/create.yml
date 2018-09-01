@@ -1,0 +1,164 @@
+---
+- name: Setup base directory
+  file:
+    state: directory
+    path: "{{ item }}"
+  with_items:
+    - "{{ prometheus_working_directory }}"
+    - "{{ prometheus_working_directory }}/postgresql/secrets/"
+
+- name: Copy configuration
+  template:
+    src: "{{ prometheus_config_template }}"
+    dest: "{{ prometheus_working_directory }}/prometheus.yml"
+  notify: restart application container
+
+- name: Generate self signed certificate for postgresql communication over ssl
+  block:
+    - name: Generate private key
+      openssl_privatekey:
+        path: "{{ prometheus_working_directory }}/postgresql/secrets/server.key"
+        size: 4096
+        type: RSA
+        # required to have correct permissions when mounting into postgres container
+        owner: 70
+        group: 70
+      notify:
+        - restart database container
+        - restart database connector container
+
+    - name: Generate certificate singing request
+      openssl_csr:
+        common_name: "{{ prometheus_postgresql_host }}" # CN
+        country_name: "{{ prometheus_postgresql_certificate_country }}" # C
+        email_address: "{{ prometheus_postgresql_certificate_email_address }}" # E
+        organization_name: "{{ prometheus_postgresql_certificate_organisation }}" # O
+        organizational_unit_name: "{{ prometheus_postgresql_certificate_organisation_unit }}" # OU
+        state_or_province_name: "{{ prometheus_postgresql_certificate_state_province }}" # ST
+        path: "{{ prometheus_working_directory }}/postgresql/secrets/server.csr"
+        privatekey_path: "{{ prometheus_working_directory }}/postgresql/secrets/server.key"
+        # required to have correct permissions when mounting into postgres container
+        owner: 70
+        group: 70
+
+    - name: Generate certificate
+      openssl_certificate:
+        csr_path: "{{ prometheus_working_directory }}/postgresql/secrets/server.csr"
+        path: "{{ prometheus_working_directory }}/postgresql/secrets/server.crt"
+        privatekey_path: "{{ prometheus_working_directory }}/postgresql/secrets/server.key"
+        provider: selfsigned
+        # required to have correct permissions when mounting into postgres container
+        owner: 70
+        group: 70
+      notify:
+        - restart database container
+        - restart database connector container
+  when: prometheus_postgresql_ssl_certificate_crt_file is not defined or prometheus_postgresql_ssl_certificate_key_file is not defined
+
+- name: Copy postgresql key and certificate for postgresql communication over ssl
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: "{{ prometheus_postgresql_ssl_certificate_crt_file }}"
+      dest: "{{ prometheus_working_directory }}/postgresql/secrets/server.crt"
+    - src: "{{ prometheus_postgresql_ssl_certificate_key_file }}"
+      dest: "{{ prometheus_working_directory }}/postgresql/secrets/server.key"
+  when: prometheus_postgresql_ssl_certificate_crt_file is defined and prometheus_postgresql_ssl_certificate_key_file is defined
+  notify:
+    - restart database container
+    - restart database connector container
+
+# Docker images
+- name: Pull docker images
+  docker_image:
+    name: "{{ item.image }}"
+    state: present
+    tag: "{{ item.tag }}"
+  with_items: "{{ prometheus_images }}"
+
+# Docker storage setup
+- name: Create storage volumes
+  docker_volume:
+    name: "prometheus_{{ item }}"
+    state: present
+  with_items: "{{ prometheus_volumes }}"
+
+# Docker networking setup
+- name: Create frontend network
+  docker_network:
+    name: "{{ prometheus_frontend_network }}"
+    state: present
+
+- name: Create backend network
+  docker_network:
+    name: "{{ prometheus_backend_network }}"
+    state: present
+
+# Docker application/container setup
+- name: Start prometheus database
+  docker_container:
+    command: 
+      - -csynchronous_commit=off
+      - -cssl=on
+      - -cssl_cert_file=/var/lib/postgresql/server.crt
+      - -cssl_key_file=/var/lib/postgresql/server.key
+    env:
+      POSTGRES_DB: "{{ prometheus_postgresql_database }}"
+      POSTGRES_USER: "{{ prometheus_postgresql_user }}"
+      POSTGRES_PASSWORD: "{{ prometheus_postgresql_password }}"
+    name: prometheus_database
+    image: "{{ prometheus_database_image }}:{{ prometheus_database_image_tag }}"
+    networks:
+      - name: "{{ prometheus_backend_network }}"
+    restart_policy: always
+    volumes:
+      - prometheus_database:/var/lib/postgresql/data
+      - "{{ prometheus_working_directory }}/postgresql/secrets/server.crt:/var/lib/postgresql/server.crt"
+      - "{{ prometheus_working_directory }}/postgresql/secrets/server.key:/var/lib/postgresql/server.key"
+
+- name: Start prometheus postgresql connector
+  docker_container:
+    command:
+      - -pg.host={{ prometheus_postgresql_host }}
+      - -pg.port={{ prometheus_postgresql_port }}
+      - -pg.user={{ prometheus_postgresql_user }}
+      - -pg.password={{ prometheus_postgresql_password }}
+      - -pg.database={{ prometheus_postgresql_database }}
+      - -pg.schema={{ prometheus_postgresql_schema }}
+      - -pg.ssl-mode=require # Enabled by default by providing a self signed certificate
+      - -pg.db-connect-retries=5
+      - -pg.prometheus-log-samples
+    name: prometheus_database_connector
+    image: timescale/prometheus-postgresql-adapter:{{ prometheus_database_adaptor_image_tag }}
+    links:
+      - prometheus_database
+    networks:
+      - name: "{{ prometheus_backend_network }}"
+    restart_policy: always
+
+- name: Start prometheus application
+  docker_container:
+    name: prometheus_application
+    image: prom/prometheus:{{ prometheus_app_image_tag }}
+    labels:
+      # Labels for auto discovery of Traefik proxy
+      traefik.docker.network: "{{ prometheus_frontend_network }}"
+      traefik.enable: "{{ traefik_prometheus_enable }}"
+      traefik.port: "9090"
+      traefik.backend: prometheus
+      traefik.backend.healthcheck.path: /-/healthy
+      traefik.frontend.headers.allowedHosts: "{{ traefik_prometheus_allowed_hosts | join(',') }}"
+    links:
+      - prometheus_database_connector
+    networks:
+      - name: "{{ prometheus_backend_network }}"
+      - name: "{{ prometheus_frontend_network }}"
+    published_ports:
+      - "{{ prometheus_port }}:9090"
+    restart_policy: always
+    volumes:
+      - "{{ prometheus_working_directory }}/prometheus.yml:/etc/prometheus/prometheus.yml"
+      - prometheus_app_data:/prometheus
+
+- meta: flush_handlers

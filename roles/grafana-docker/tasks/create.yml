@@ -1,0 +1,44 @@
+---
+# Docker images
+- name: Pull docker images
+  docker_image:
+    name: "{{ item.image }}"
+    state: present
+    tag: "{{ item.tag }}"
+  with_items: "{{ grafana_images }}"
+
+# Docker storage setup
+- name: Create docker volumes
+  docker_volume:
+    name: grafana_{{ item }}
+    state: present
+  with_items: "{{ grafana_volumes }}"
+
+# Docker networking setup
+- name: Create docker network
+  docker_network:
+    name: "{{ grafana_default_network }}"
+    state: present
+
+# Docker application/container setup
+- name: Create grafana docker container
+  docker_container:
+    env: "{{ grafana_environment_variables }}"
+    name: grafana_application
+    image: "grafana/grafana:{{ grafana_app_image_tag }}"
+    labels:
+      # Labels for auto discovery of Traefik proxy
+      traefik.docker.network: "{{ grafana_default_network }}"
+      traefik.enable: "{{ traefik_grafana_enable }}"
+      traefik.port: "3000"
+      traefik.backend: grafana
+      traefik.backend.healthcheck.path: /api/health
+      traefik.frontend.headers.allowedHosts: "{{ traefik_grafana_allowed_hosts | join(',') }}"
+    networks: "{{ [{'name': grafana_default_network}] + grafana_additional_networks }}"
+    published_ports:
+      - "{{ grafana_port }}:3000"
+    restart_policy: always
+    volumes:
+      - "grafana_app_data:/var/lib/grafana"
+
+- meta: flush_handlers

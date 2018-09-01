@@ -1,0 +1,46 @@
+---
+# Stop containers
+- name: Stop containers
+  docker_container:
+    name: traefik_{{ item }}
+    state: stopped
+  with_items:
+    - application
+
+# Remove containers
+- name: Remove containers
+  docker_container:
+    name: traefik_{{ item }}
+    state: absent
+  with_items:
+    - application
+
+# Remove network
+- name: Remove networks
+  docker_network:
+    name: "{{ traefik_default_network }}"
+    state: absent
+
+# Volumes
+- name: Remove volumes
+  docker_volume:
+    name: traefik_{{ item }}
+    state: absent
+  with_items: "{{ traefik_volumes }}"
+  when: not traefik_keep_volumes
+
+# Docker images
+- name: Remove docker images
+  docker_image:
+    name: "{{ item.image }}"
+    state: absent
+    tag: "{{ item.tag }}"
+  with_items: "{{ traefik_images }}"
+
+# Cleanup working directory and configuration setup
+- name: Remove directory structure
+  file: 
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ traefik_working_directory }}"

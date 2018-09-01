@@ -1,0 +1,51 @@
+---
+# present/absent - add or remove traefik
+traefik_state: present
+# if removing traefik, keep data volumes or not?
+traefik_keep_volumes: true
+
+# docker images and tags
+traefik_app_image_tag: 1.7-alpine
+
+# docker networks to join
+traefik_default_network: traefik
+# overwrite to connect to other networks e.g. for other services
+# e.g.
+# traefik_docker_networks: 
+#   - name: prometheus_frontend
+traefik_additional_networks: []
+
+# exposed ports
+traefik_http_port: 80
+traefik_https_port: 443
+
+# docker socket - required for traefik to 
+traefik_docker_sock: /var/run/docker.sock
+
+# working directory
+traefik_working_directory: /opt/traefik-docker
+
+# configuration files
+traefik_configuration_template: traefik.toml.j2
+traefik_acme_json_template: acme.json.j2
+
+# traefik configuration
+traefik_debug: false
+traefik_log_level: ERROR
+
+# acme/lets encrypt config
+traefik_acme_email: acme@example.com
+
+#########################################################
+# Note: Do not overwrite anything below this line
+# All variables below are only used for convenience
+#########################################################
+
+# docker volumes
+traefik_volumes:
+  - app_data
+
+# docker images
+traefik_images:
+  - image: "traefik"
+    tag: "{{ traefik_app_image_tag }}"

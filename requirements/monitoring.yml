@@ -1,0 +1,4 @@
+---
+# Requirements file for monitoring server roles
+- src: geerlingguy.docker
+  version: "2.5.1"

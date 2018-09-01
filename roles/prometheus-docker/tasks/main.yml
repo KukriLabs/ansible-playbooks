@@ -1,0 +1,8 @@
+---
+- name: Create and setup prometheus
+  include_tasks: create.yml
+  when: prometheus_state == "present"
+
+- name: Destroy all prometheus resources
+  include_tasks: teardown.yml
+  when: prometheus_state == "absent"

@@ -1,0 +1,5 @@
+---
+- name: restart application container
+  docker_container:
+    name: grafana_application
+    restart: true

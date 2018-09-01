@@ -1,0 +1,53 @@
+---
+# Stop containers
+- name: Stop containers
+  docker_container:
+    name: prometheus_{{ item }}
+    state: stopped
+  with_items:
+    - application
+    - database_connector
+    - database
+
+# Remove containers
+- name: Remove containers
+  docker_container:
+    name: prometheus_{{ item }}
+    state: absent
+  with_items:
+    - application
+    - database_connector
+    - database
+
+# Volumes
+- name: Removes volumes
+  docker_volume:
+    name: "prometheus_{{ item }}"
+    state: absent
+  with_items: "{{ prometheus_volumes }}"
+  when: not prometheus_keep_volumes
+
+# Networks
+- name: Remove frontend network
+  docker_network:
+    name: "{{ prometheus_frontend_network }}"
+    state: absent
+
+- name: Remove backend network
+  docker_network:
+    name: "{{ prometheus_backend_network }}"
+    state: absent
+
+# Docker images
+- name: Remove docker images
+  docker_image:
+    name: "{{ item.image }}"
+    state: absent
+    tag: "{{ item.tag }}"
+  with_items: "{{ prometheus_images }}"
+
+# Files and config
+- name: Remove working directory
+  file:
+    path: "{{ prometheus_working_directory }}"
+    state: absent

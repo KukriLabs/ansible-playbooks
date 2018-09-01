@@ -1,0 +1,68 @@
+---
+# present/absent - add or remove prometheus
+prometheus_state: present
+# if removing prometheus, keep data volumes or not?
+prometheus_keep_volumes: true
+
+# docker images and tags
+prometheus_database_image: timescale/pg_prometheus
+prometheus_database_image_tag: "0.2.1"
+prometheus_database_adaptor_image_tag: "0.2.1"
+prometheus_app_image_tag: v2.3.2
+
+# docker network names
+prometheus_backend_network: prometheus_backend
+prometheus_frontend_network: prometheus_frontend
+
+# exposed ports
+prometheus_port: 9090
+
+# config file
+prometheus_config_template: prometheus.yml.j2
+
+# working directory
+prometheus_working_directory: /opt/prometheus-docker
+
+# traefik proxy configuration
+# ignore if not using traefik, some labels may get added to 
+# containers but nothing else should be done
+traefik_prometheus_enable: "true"
+traefik_prometheus_allowed_hosts:
+  - prometheus.examle.com
+
+# postgresql database settings
+prometheus_postgresql_host: prometheus_database # internal docker network dns
+prometheus_postgresql_port: 5432
+prometheus_postgresql_user: postgres
+prometheus_postgresql_password: postgres
+prometheus_postgresql_database: postgres
+prometheus_postgresql_schema: postgres
+# override these variables for a generated, selfsigned certificate with postgresql or use your own (below)
+prometheus_postgresql_certificate_country: UK
+prometheus_postgresql_certificate_email_address: test@example.com
+prometheus_postgresql_certificate_organisation: MyOrg
+prometheus_postgresql_certificate_organisation_unit: Monitoring
+prometheus_postgresql_certificate_state_province: ""
+
+# set these variables to use your own certificates for postgresql ssl
+#prometheus_postgresql_ssl_certificate_crt_file: vault_encrypted_file.crt
+#prometheus_postgresql_ssl_certificate_key_file: vault_encrypted_file.key
+
+#########################################################
+# Note: Do not overwrite anything below this line
+# All variables below are only used for convenience
+#########################################################
+
+# docker volumes
+prometheus_volumes:
+  - app_data
+  - database
+
+# docker images
+prometheus_images:
+  - image: "{{ prometheus_database_image }}"
+    tag: "{{ prometheus_database_image_tag }}"
+  - image: "prom/prometheus"
+    tag: "{{ prometheus_app_image_tag }}"
+  - image: "timescale/prometheus-postgresql-adapter"
+    tag: "{{ prometheus_database_adaptor_image_tag }}"

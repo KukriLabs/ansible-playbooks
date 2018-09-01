@@ -1,0 +1,23 @@
+---
+- name: Install monitoring machine
+  become: true
+  hosts: all
+  roles:
+    - role: geerlingguy.docker
+      tags:
+        - docker
+    - role: prometheus-docker
+      tags:
+        - prometheus
+    - role: grafana-docker
+      tags:
+      - grafana
+    - role: traefik-docker
+      tags:
+      - traefik
+  vars:
+    grafana_additional_networks:
+      - name: prometheus_frontend
+    traefik_additional_networks:
+      - name: grafana
+      - name: prometheus_frontend

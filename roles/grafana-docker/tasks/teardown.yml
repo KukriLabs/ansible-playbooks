@@ -1,0 +1,38 @@
+---
+# Stop containers
+- name: Stop containers
+  docker_container:
+    name: grafana_{{ item }}
+    state: stopped
+  with_items:
+    - application
+
+# Remove containers
+- name: Remove containers
+  docker_container:
+    name: grafana_{{ item }}
+    state: absent
+  with_items:
+    - application
+
+# Remove network
+- name: Remove networks
+  docker_network:
+    name: "{{ grafana_default_network }}"
+    state: absent
+
+# Volumes
+- name: Remove volumes
+  docker_volume:
+    name: grafana_{{ item }}
+    state: absent
+  with_items: "{{ grafana_volumes }}"
+  when: not grafana_keep_volumes
+
+# Docker images
+- name: Remove docker images
+  docker_image:
+    name: "{{ item.image }}"
+    state: absent
+    tag: "{{ item.tag }}"
+  with_items: "{{ grafana_images }}"

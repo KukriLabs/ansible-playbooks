@@ -1,0 +1,15 @@
+---
+- name: restart database container
+  docker_container: 
+    name: prometheus_database
+    restart: true
+
+- name: restart database connector container
+  docker_container: 
+    name: prometheus_database_connector
+    restart: true
+
+- name: restart application container
+  docker_container: 
+    name: prometheus_application
+    restart: true

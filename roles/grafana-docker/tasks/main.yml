@@ -1,0 +1,8 @@
+---
+- name: Create and setup grafana
+  include_tasks: create.yml
+  when: grafana_state == "present"
+
+- name: Destroy all grafana resources
+  include_tasks: teardown.yml
+  when: grafana_state == "absent"

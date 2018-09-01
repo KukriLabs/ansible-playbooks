@@ -1,0 +1,52 @@
+---
+# Create working directory and configuration setup
+- name: Create required directory structure
+  file: 
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ traefik_working_directory }}"
+
+- name: Copy configuration
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: "{{ traefik_configuration_template }}"
+      dest: "{{ traefik_working_directory }}/traefik.toml"
+    - src: "{{ traefik_acme_json_template }}"
+      dest: "{{ traefik_working_directory }}/acme.json"
+
+# Docker images
+- name: Pull docker images
+  docker_image:
+    name: "{{ item.image }}"
+    state: present
+    tag: "{{ item.tag }}"
+  with_items: "{{ traefik_images }}"
+
+# Docker storage setup
+- name: Create storage volumes
+  docker_volume:
+    name: "traefik_{{ item }}"
+    state: present
+  with_items: "{{ traefik_volumes }}"
+
+# Docker networking setup
+- name: Create docker network
+  docker_network:
+    name: "{{ traefik_default_network }}"
+    state: present
+
+# Docker application/container setup
+- name: Start traefik application
+  docker_container:
+    name: traefik_application
+    image: traefik:{{ traefik_app_image_tag }}
+    networks: "{{ [{'name': traefik_default_network}] + traefik_additional_networks }}"
+    published_ports:
+      - "{{ traefik_http_port }}:80"
+      - "{{ traefik_https_port }}:443"
+    restart_policy: always
+    volumes:
+      - "{{ traefik_docker_sock }}:/var/run/docker.sock"
