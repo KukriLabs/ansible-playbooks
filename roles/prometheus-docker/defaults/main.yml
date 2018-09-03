@@ -24,11 +24,27 @@ prometheus_config_template: prometheus.yml.j2
 prometheus_working_directory: /opt/prometheus-docker
 
 # traefik proxy configuration
-# ignore if not using traefik, some labels may get added to 
-# containers but nothing else should be done
-traefik_prometheus_enable: "true"
-traefik_prometheus_allowed_hosts:
+# ignore if not using traefik. 
+# enabling traefik will remove any published ports so communication must go through
+# traefik connected to the {{ prometheus_frontend_network }}
+prometheus_traefik_enable: false
+# Define a frontend rule for direction as per the traefik documentation
+# https://docs.traefik.io/configuration/backends/docker/
+# https://docs.traefik.io/basics/#frontends
+# Join multiple rules with `;`
+prometheus_traefik_frontend_rule: "Host: prometheus.example.com"
+prometheus_traefik_allowed_hosts:
   - prometheus.examle.com
+# override this block for complete control of the traefik labels
+prometheus_traefik_labels:
+  # Labels for auto discovery of Traefik proxy
+  traefik.docker.network: "{{ prometheus_frontend_network }}"
+  traefik.enable: "true"
+  traefik.port: "9090"
+  traefik.backend: prometheus
+  traefik.backend.healthcheck.path: /-/healthy
+  traefik.frontend.headers.allowedHosts: "{{ prometheus_traefik_allowed_hosts | join(',') }}"
+  traefik.frontend.rule: "{{ prometheus_traefik_frontend_rule }}"
 
 # postgresql database settings
 prometheus_postgresql_host: prometheus_database # internal docker network dns
@@ -52,6 +68,8 @@ prometheus_postgresql_certificate_state_province: ""
 # Note: Do not overwrite anything below this line
 # All variables below are only used for convenience
 #########################################################
+prometheus_published_ports:
+  - "{{ prometheus_port }}:9090"
 
 # docker volumes
 prometheus_volumes:

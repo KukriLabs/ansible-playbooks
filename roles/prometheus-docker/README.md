@@ -8,17 +8,17 @@ Once installed Prometheus is available on `:9090` (defined by variable `promethe
 Requirements
 ------------
 
-Docker to be installed on the inventory hosts. Recommended role [`geerlingguy.docker`](https://galaxy.ansible.com/geerlingguy/docker/). 
+Docker to be installed on the inventory hosts. Recommended role [`geerlingguy.docker`](https://galaxy.ansible.com/geerlingguy/docker/).
 
 Role Variables
 --------------
 
-See all variables defined in `defaults/main.yml` which can be overwritten as necessary. 
+See all variables defined in `defaults/main.yml` which can be overwritten as necessary.
 
 Dependencies
 ------------
 
-- [`geerlingguy.docker`](https://galaxy.ansible.com/geerlingguy/docker/). 
+- [`geerlingguy.docker`](https://galaxy.ansible.com/geerlingguy/docker/).
 
 Example Playbook
 ----------------

@@ -141,24 +141,14 @@
   docker_container:
     name: prometheus_application
     image: prom/prometheus:{{ prometheus_app_image_tag }}
-    labels:
-      # Labels for auto discovery of Traefik proxy
-      traefik.docker.network: "{{ prometheus_frontend_network }}"
-      traefik.enable: "{{ traefik_prometheus_enable }}"
-      traefik.port: "9090"
-      traefik.backend: prometheus
-      traefik.backend.healthcheck.path: /-/healthy
-      traefik.frontend.headers.allowedHosts: "{{ traefik_prometheus_allowed_hosts | join(',') }}"
+    labels: "{{ prometheus_traefik_labels if prometheus_traefik_enable else omit }}"
     links:
       - prometheus_database_connector
     networks:
       - name: "{{ prometheus_backend_network }}"
       - name: "{{ prometheus_frontend_network }}"
-    published_ports:
-      - "{{ prometheus_port }}:9090"
+    published_ports: "{{ prometheus_published_ports if not prometheus_traefik_enable else omit }}"
     restart_policy: always
     volumes:
       - "{{ prometheus_working_directory }}/prometheus.yml:/etc/prometheus/prometheus.yml"
       - prometheus_app_data:/prometheus
-
-- meta: flush_handlers
