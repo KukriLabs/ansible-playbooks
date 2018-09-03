@@ -16,8 +16,12 @@
       tags:
       - traefik
   vars:
+    grafana_traefik_enable: true
     grafana_additional_networks:
       - name: prometheus_frontend
     traefik_additional_networks:
       - name: grafana
       - name: prometheus_frontend
+    grafana_traefik_allowed_hosts:
+      - '192.168.33.10'
+    grafana_traefik_frontend_rule: "Host: 192.168.33.10"
