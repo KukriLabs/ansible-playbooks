@@ -15,7 +15,7 @@ grafana_default_network: grafana
 #   - name: prometheus_frontend
 grafana_additional_networks: []
 
-# exposed ports
+# exposed port
 grafana_port: 3000
 
 # environment variable config
@@ -30,16 +30,33 @@ grafana_environment_variables: {}
 grafana_working_directory: /opt/grafana-docker
 
 # traefik proxy configuration
-# ignore if not using traefik, some labels may get added to 
-# containers but nothing else should be done
-traefik_grafana_enable: "true"
-traefik_grafana_allowed_hosts:
+# ignore if not using traefik. 
+# enabling traefik will remove any published ports so communication must go through
+# traefik connected to the {{ grafana_default_network }}
+grafana_traefik_enable: false
+# Define a frontend rule for direction as per the traefik documentation
+# https://docs.traefik.io/configuration/backends/docker/
+# https://docs.traefik.io/basics/#frontends
+# Join multiple rules with `;`
+grafana_traefik_frontend_rule: "Host: grafana.example.com"
+grafana_traefik_allowed_hosts:
   - grafana.examle.com
+# override this block for complete control of the traefik labels
+grafana_traefik_labels: 
+  traefik.docker.network: "{{ grafana_default_network }}"
+  traefik.enable: "true"
+  traefik.port: "3000"
+  traefik.backend: grafana
+  traefik.backend.healthcheck.path: /api/health
+  traefik.frontend.headers.allowedHosts: "{{ grafana_traefik_allowed_hosts | join(',') }}"
+  traefik.frontend.rule: "{{ grafana_traefik_frontend_rule }}"
 
 #########################################################
 # Note: Do not overwrite anything below this line
 # All variables below are only used for convenience
 #########################################################
+grafana_published_ports:
+  - "{{ grafana_port }}:3000"
 
 # docker volumes
 grafana_volumes:

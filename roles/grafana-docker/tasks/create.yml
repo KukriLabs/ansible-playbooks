@@ -26,17 +26,9 @@
     env: "{{ grafana_environment_variables }}"
     name: grafana_application
     image: "grafana/grafana:{{ grafana_app_image_tag }}"
-    labels:
-      # Labels for auto discovery of Traefik proxy
-      traefik.docker.network: "{{ grafana_default_network }}"
-      traefik.enable: "{{ traefik_grafana_enable }}"
-      traefik.port: "3000"
-      traefik.backend: grafana
-      traefik.backend.healthcheck.path: /api/health
-      traefik.frontend.headers.allowedHosts: "{{ traefik_grafana_allowed_hosts | join(',') }}"
+    labels: "{{ grafana_traefik_labels if grafana_traefik_enable else omit }}"
     networks: "{{ [{'name': grafana_default_network}] + grafana_additional_networks }}"
-    published_ports:
-      - "{{ grafana_port }}:3000"
+    published_ports: "{{ grafana_published_ports if not grafana_traefik_enable else omit}}"
     restart_policy: always
     volumes:
       - "grafana_app_data:/var/lib/grafana"
