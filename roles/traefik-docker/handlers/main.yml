@@ -1,2 +1,5 @@
 ---
-# handlers file for traefik-docker
+- name: restart traefik container
+  docker_container:
+    name: traefik_application
+    restart: true

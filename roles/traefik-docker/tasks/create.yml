@@ -16,6 +16,20 @@
       dest: "{{ traefik_working_directory }}/traefik.toml"
     - src: "{{ traefik_acme_json_template }}"
       dest: "{{ traefik_working_directory }}/acme.json"
+  notify:
+    - restart traefik container
+
+- name: Set permissions
+  file:
+    group: "{{ item.group }}"
+    owner: "{{ item.owner }}"
+    mode: "{{ item.mode }}"
+    path: "{{ item.path }}"
+  with_items:
+    - path: "{{ traefik_working_directory }}/acme.json"
+      owner: root
+      group: root
+      mode: "0600"
 
 # Docker images
 - name: Pull docker images
@@ -50,3 +64,5 @@
     restart_policy: always
     volumes:
       - "{{ traefik_docker_sock }}:/var/run/docker.sock"
+      - "{{ traefik_working_directory }}/traefik.toml:/traefik.toml"
+      - "{{ traefik_working_directory }}/acme.json:/acme.json"

@@ -1,6 +1,8 @@
-debug = {{ traefik_debug }}
+{% if traefik_debug %}
+debug = true
+{% endif %}
 
-logLevel = "{{ traefik_log_level }}"
+logLevel = "{{ traefik_log_level | upper }}"
 defaultEntryPoints = ["https","http"]
 
 [entryPoints]
@@ -8,15 +10,18 @@ defaultEntryPoints = ["https","http"]
   address = ":80"
     [entryPoints.http.redirect]
     entryPoint = "https"
+
   [entryPoints.https]
   address = ":443"
+  compress = true
   [entryPoints.https.tls]
 
-[retry]
+[ping]
+entryPoint = "https"
 
 [docker]
 endpoint = "unix:///var/run/docker.sock"
-domain = "my-awesome-app.org"
+domain = "kukrilabs.com"
 watch = true
 exposedByDefault = false
 
