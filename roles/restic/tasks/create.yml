@@ -1,0 +1,95 @@
+---
+# configure and install restic
+- name: Directory structure setup
+  file:
+    path: "{{ item.path }}"
+    state: directory
+  loop:
+    - path: "{{ restic_working_directory }}"
+    - path: "{{ restic_working_directory }}/bin"
+    - path: "{{ restic_working_directory }}/{{ restic_repo_friendly_name }}"
+
+- name: Setup restic group
+  group:
+    name: "{{ restic_user }}"
+    system: true
+
+- name: Setup restic user
+  user:
+    name: "{{ restic_user }}"
+    comment: "Restic user for non-root backing up of file system"
+    group: "{{ restic_user }}"
+    home: "{{ restic_working_directory }}"
+    system: true
+
+- name: Download restic binary
+  get_url:
+    url: https://github.com/restic/restic/releases/download/v{{ restic_version }}/restic_{{ restic_version }}_linux_amd64.bz2
+    dest: "{{ restic_working_directory }}/restic_{{ restic_version }}_linux_amd64.bz2"
+    checksum: "{{ restic_download_checksum }}"
+
+# `unarchive` doe not work here. leaving as placeholder awaiting merged `uncompress` module PR
+# https://github.com/ansible/ansible/pull/23048
+# - name: Extract restic binary
+#   unarchive:
+#     creates: "{{ restic_working_directory }}/bin/restic"
+#     src: "{{ restic_working_directory }}/restic_{{ restic_version }}_linux_amd64.bz2"
+#     remote_src: true
+#     dest: "{{ restic_working_directory }}/bin"
+#     owner: root
+#     group: "{{ restic_user }}"
+#     mode: "0750"
+
+- name: Uncompress restic binary
+  shell: bzcat {{ restic_working_directory }}/restic_{{ restic_version }}_linux_amd64.bz2 > {{ restic_working_directory }}/bin/restic
+  args:
+    creates: "{{ restic_working_directory }}/bin/restic"
+
+- name: Save repository password file
+  copy:
+    content: "{{ restic_password }}"
+    dest: "{{ restic_working_directory }}/{{ restic_repo_friendly_name}}/password.txt"
+    owner: "{{ restic_user }}"
+    group: "root"
+    mode: "0600"
+  no_log: true
+
+- name: Copy include files template into place
+  template:
+    src: "{{ restic_include_files_template }}"
+    dest: "{{ restic_working_directory }}/{{ restic_repo_friendly_name}}/include-files.txt"
+  when: restic_include_files_template is defined
+
+- name: Copy exclude files template into place
+  template:
+    src: "{{ restic_exclude_files_template }}"
+    dest: "{{ restic_working_directory }}/{{ restic_repo_friendly_name}}/exclude-files.txt"
+  when: restic_exclude_files_template is defined
+
+- name: Set correct file permissions
+  file:
+    owner: root
+    group: "{{ restic_user }}"
+    mode: "0750"
+    path: "{{ restic_working_directory }}"
+    recurse: true
+
+- name: Set extended permissions on binary
+  command: setcap cap_dac_read_search=+ep {{ restic_working_directory }}/bin/restic
+
+# begin to use restic
+- name: Set helper command
+  set_fact:
+    restic_command: "{{ restic_working_directory }}/bin/restic {% if restic_verbose > 0 %}--verbose {{ restic_verbose }}{% endif %} --password-file {{ restic_working_directory }}/{{ restic_repo_friendly_name}}/password.txt --repo {{ restic_repo }}"
+
+- name: Check if repository already exists
+  become_user: "{{ restic_user }}"
+  command: "{{ '%s %s' | format(restic_command, 'snapshots') }}"
+  register: snapshot_result
+  failed_when:
+    - snapshot_result.rc != 0
+    - "'Is there a repository at the following location?' not in snapshot_result.stderr"
+
+- name: Perform restic action
+  include_tasks: "{{ restic_action }}.yml"
+  when: restic_action in ['backup', 'restore']

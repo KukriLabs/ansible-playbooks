@@ -4,7 +4,9 @@ Monorepo for KukriLabs Ansible Playbooks and Roles. Where possible (and appropri
 
 ## Roles
 
-Currently roles are only defined in the `roles/` directory and not available on Ansible Galaxy. Should there be a suitable demand for this functionality this is something we are open to providing.
+**Note:** Currently roles are only defined in the `roles/` directory and not available on Ansible Galaxy. Should there be a suitable demand for this functionality this is something we are open to providing.
+
+_More information for each role is available in the respecive `README.md`_
 
 ### `prometheus-docker`
 
@@ -13,6 +15,14 @@ Currently roles are only defined in the `roles/` directory and not available on 
 ### `grafana-docker`
 
 [Grafana](https://grafana.com/) graphing system running in a docker container. Can be connected to docker network of `prometheus-docker` role (and others) to add Prometheus as a data source
+
+### `traefik-docker`
+
+[Traefik](https://traefik.io/) routes traffic based on rules with automatic Let's Encrypt SSL support and service discovery (as well as many other features). This role compliments other roles here (`prometheus-docker`, `grafana-docker` etc.) to provide encrypted endpoints sending internal traffic through Docker networks to minimise attack surface.
+
+### `restic`
+
+[Restic](https://restic.net/) provides encrypted backups to off-site locations. Use to add some protection to a node, passing in all paths any files to include/exclude as necessary.
 
 ## Playbooks
 

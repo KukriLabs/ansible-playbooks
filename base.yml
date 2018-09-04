@@ -1,0 +1,10 @@
+---
+- hosts: all
+  roles:
+    - users
+    - iptables
+    - fail2ban
+    - netdata
+  vars:
+    sudoers:
+      - ""

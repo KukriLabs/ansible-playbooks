@@ -1,0 +1,47 @@
+---
+- name: Stop if repository doesn't exist
+  fail:
+    msg: "Restic repository missing or misconfigured"
+  when:
+    - snapshot_result.rc != 0
+    - "'Is there a repository at the following location?' in snapshot_result.stderr"
+
+- name: Set restore command
+  set_fact:
+    restic_restore_command: >
+      "{{ restic_command | replace('\"', '') }} restore
+      {% if restic_verbose > 0 %}--verbose {{ restic_verbose }}{% endif %}
+      {% if restic_restore_host is defined %}{% endif %}
+      --target {{ restic_restore_path }}
+      {% if restic_restore_includes | length > 0 %}{% for path in restic_restore_includes %} --include {{ path }}{% endfor %}{% endif %}
+      {% if restic_restore_excludes | length > 0 %}{% for path in restic_restore_excludes %} --exclude {{ path }}{% endfor %}{% endif %}
+      {{ restic_restore_snapshot_id }}"
+
+- name: Create restore path
+  file:
+    path: "{{ restic_restore_path }}"
+    state: directory
+    owner: root
+    group: "{{ restic_user }}"
+
+- name: Restore files
+  command: "{{ restic_restore_command | replace('\"', '') }}"
+
+- name: "[EXPERIMENTAL] Validation - Collect SHA256 checksums"
+  stat:
+    path: "{{ restic_restore_path }}{{ item.path }}"
+    checksum_algorithm: sha256
+    get_checksum: true
+  register: checksums
+  loop: "{{ restic_restore_validation_files }}"
+  when: restic_restore_validation_enable
+
+- name: "[EXPERIMENTAL] Validation - Compare SHA256 checksums"
+  fail:
+    msg: "{{ 'Checksums for %s do not match! Possible Backup failure' | format(restic_restore_validation_files[idx].path) }}"
+  loop: "{{ checksums.results }}"
+  loop_control:
+    index_var: idx
+  when:
+    - restic_restore_validation_enable
+    - "item.stat.checksum != restic_restore_validation_files[idx].sha256checksum"

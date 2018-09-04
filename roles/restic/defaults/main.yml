@@ -1,0 +1,100 @@
+---
+###########################################################
+## General options
+###########################################################
+# present/absent - add or remove restic
+restic_state: present
+
+# increase restic verbosity
+restic_verbose: 0
+
+# backup/restore
+restic_action: backup
+
+# version and download validation
+restic_version: "0.9.2"
+restic_download_checksum: sha256:1ad8a76a9f966da5f7a319c49a6db071a60ebaa24d69e6d86d53d6f2bcaf11ed
+
+# user to create and run restic as
+restic_user: restic
+# working and home directory for new restic user
+restic_working_directory: /opt/restic
+
+restic_repo: /tmp
+# a friendly name to use in jobs etc. must be only alphanumeric
+restic_repo_friendly_name: "{{ restic_repo | hash('md5') }}"
+# set a secure password (encrypt with ansible-vault)
+restic_password: really insecure password
+
+# if using a remote repository, pass in required credentials as env vars
+# example:
+#   restic_repo_credential_env_vars:
+#     AWS_ACCESS_KEY_ID: !vault |
+#            $ANSIBLE_VAULT;1.1;AES256 [....]
+#     AWS_SECRET_ACCESS_KEY: !vault |
+#            $ANSIBLE_VAULT;1.1;AES256 [....]
+#restic_repo_credential_env_vars: 
+#  KEY: VALUE
+
+###########################################################
+## Backup options
+###########################################################
+# list of directories to backup to restic respository
+restic_backup_directories:
+  - /home/
+
+# include and exclude files present in backup_directories
+# restic_include_files_template: include-files.txt.j2
+# restic_exclude_files_template: exclude-files.txt.j2
+
+###########################################################
+## Restore options
+###########################################################
+# when restoring, use a particular snapshot
+restic_restore_snapshot_id: latest
+# where to restore files
+restic_restore_path: "{{ restic_working_directory }}/{{ restic_repo_friendly_name}}/restore"
+# if restoring to a different host, specify the host tag wanting to restore from
+#restic_restore_host: 
+
+# any include or exclude filepath globs. specify an array of many
+restic_restore_includes: []
+restic_restore_excludes: []
+
+restic_restore_validation_enable: false
+# example files - override with known sha256 checksums to validate restoration
+restic_restore_validation_files:
+  - path: /home/vagrant/.bashrc
+    sha256checksum: afae8986f549c6403410e029f9cce7983311512d04b1f02af02e4ce0af0dd2bf
+  - path: /home/vagrant/.profile
+    sha256checksum: 86512cad76131783f5dae4346ddc3fb39f6f7c0f74b3039bff70ca4015ade034
+
+###########################################################
+## Granular options for scheduler etc.
+###########################################################
+# settings to keep backups
+# default: keep minimum 5 backups; 12 hourly backups; 6 daily backups; 4-5 weekly backups; 12 monthly backups; 15 yearly backups
+restic_keep_last: 5
+restic_keep_houry: 12
+restic_keep_daily: 7
+restic_keep_weekly: 5
+restic_keep_monthly: 12
+restic_keep_yearly: 15
+
+# schedule for running backup task
+# default: every day at 1:00am
+restic_schedule_backup: true
+restic_backup_schedule_minute: 0
+restic_backup_schedule_hour: 1
+restic_backup_schedule_day: "*"
+restic_backup_schedule_weekday: "*"
+restic_backup_schedule_month: "*"
+
+# schedule for running snapshot cleanup task
+# default: every Saturday at 3:30am
+restic_schedule_cleanup: true
+restic_cleanup_schedule_minute: 30
+restic_cleanup_schedule_hour: 3
+restic_cleanup_schedule_day: "*"
+restic_cleanup_schedule_weekday: 6
+restic_cleanup_schedule_month: "*"

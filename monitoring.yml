@@ -15,13 +15,26 @@
     - role: traefik-docker
       tags:
       - traefik
+  tasks:
+    - name: Setup backblaze backup with restic
+      import_role:
+        name: restic
+      tags:
+        - restic
   vars:
+    # Prometheus
+    # Grafana
     grafana_traefik_enable: true
     grafana_additional_networks:
-      - name: prometheus_frontend
-    traefik_additional_networks:
-      - name: grafana
       - name: prometheus_frontend
     grafana_traefik_allowed_hosts:
       - '192.168.33.10'
     grafana_traefik_frontend_rule: "Host: 192.168.33.10"
+    # Traefik
+    traefik_additional_networks:
+      - name: grafana
+      - name: prometheus_frontend
+    # Restic
+    restic_repo_credential_env_vars:
+      AWS_ACCESS_KEY_ID: access-key
+      AWS_SECRET_ACCESS_KEY: secret-key

@@ -1,0 +1,24 @@
+---
+# cron jobs
+- name: Remove scheduled tasks
+  cron:
+    cron_file: restic-{{ restic_repo_friendly_name }}
+    state: absent
+    user: "{{ restic_user }}"
+
+# user and group
+- name: Remove user
+  user:
+    name: "{{ restic_user }}"
+    state: absent
+
+- name: Remove group
+  group:
+    name: "{{ restic_user }}"
+    state: absent
+
+# directory structure
+- name: Remove directory structure
+  file:
+    path: "{{ restic_working_directory }}"
+    state: absent

@@ -1,0 +1,53 @@
+---
+- name: Initialise new repository
+  become_user: "{{ restic_user }}"
+  command: "{{ '%s %s' | format(restic_command, 'init') }}"
+  when:
+    - snapshot_result.rc != 0
+    - "'Is there a repository at the following location?' in snapshot_result.stderr"
+
+- name: Set some facts
+  set_fact:
+    restic_backup_command: "{{ restic_command }}{% if restic_include_files_template is defined %} --files-from {{ restic_working_directory }}/{{ restic_repo_friendly_name}}/include-files.txt{% endif %}{% if restic_exclude_files_template is defined %} --exclude-file {{ restic_working_directory }}/{{ restic_repo_friendly_name}}/exclude-files.txt{% endif %} backup {{ restic_backup_directories | join(' ') }}"
+    restic_cleanup_command: "{{ restic_command }} --prune --keep-last {{ restic_keep_last }} --keep-hourly {{ restic_keep_houry }} --keep-daily {{ restic_keep_daily }} --keep-weekly {{ restic_keep_weekly }} -keep-monthly {{ restic_keep_monthly }} --keep-yearly {{ restic_keep_yearly }}"
+
+- name: Schedule backup cycle
+  cron:
+    user: "{{ restic_user }}"
+    cron_file: restic-{{ restic_repo_friendly_name }} # specify a unique cron file to separate environment variable credentials
+    name: restic backup {{ restic_repo_friendly_name }}
+    job: "{{ restic_backup_command }}"
+    minute: "{{ restic_backup_schedule_minute }}"
+    hour: "{{ restic_backup_schedule_hour }}"
+    day: "{{ restic_backup_schedule_day }}"
+    weekday: "{{ restic_backup_schedule_weekday }}"
+    month: "{{ restic_backup_schedule_month }}"
+  when: restic_schedule_backup
+
+- name: Schedule snapshot removal
+  cron:
+    user: "{{ restic_user }}"
+    cron_file: restic-{{ restic_repo_friendly_name }} # specify a unique cron file to separate environment variable credentials
+    name: restic cleanup {{ restic_repo_friendly_name }}
+    job: "{{ restic_cleanup_command }}"
+    minute: "{{ restic_cleanup_schedule_minute }}"
+    hour: "{{ restic_cleanup_schedule_hour }}"
+    day: "{{ restic_cleanup_schedule_day }}"
+    weekday: "{{ restic_cleanup_schedule_weekday }}"
+    month: "{{ restic_cleanup_schedule_month }}"
+  when: restic_schedule_cleanup
+
+- name: Add environment variables to cron for repository access
+  cron:
+    user: "{{ restic_user }}"
+    cron_file: restic-{{ restic_repo_friendly_name }} # specify a unique cron file to separate environment variable credentials
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    env: true
+  when: restic_repo_credential_env_vars is defined
+  loop: "{{ restic_repo_credential_env_vars | default({}) | dict2items }}"
+  no_log: true
+
+- name: Perform initial backup
+  become_user: "{{ restic_user }}"
+  command: "{{ restic_backup_command }}"
