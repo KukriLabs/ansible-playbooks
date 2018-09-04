@@ -32,5 +32,3 @@
     restart_policy: always
     volumes:
       - "grafana_app_data:/var/lib/grafana"
-
-- meta: flush_handlers
