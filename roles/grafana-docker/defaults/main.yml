@@ -11,7 +11,7 @@ grafana_app_image_tag: "5.2.3"
 grafana_default_network: grafana
 # overwrite to connect to other networks e.g. for other services
 # e.g.
-# grafana_docker_networks: 
+# grafana_additional_networks: 
 #   - name: prometheus_frontend
 grafana_additional_networks: []
 
