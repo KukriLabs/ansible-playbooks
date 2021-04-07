@@ -18,10 +18,10 @@
     "default": {
         "ansible": {
             "hashes": [
-                "sha256:bb4a95a3e1a0f9e1aabd8cf628de68f5218fba3057b970b6b3c41cc53ab06268"
+                "sha256:9fdb79c43f7ad972dc7ccff8a4e9553d623e52dc80b802c619568d3c38f94ccc"
             ],
             "index": "pypi",
-            "version": "==2.7.16"
+            "version": "==2.7.17"
         },
         "bcrypt": {
             "hashes": [
